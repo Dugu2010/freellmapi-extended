@@ -14,26 +14,18 @@ const queryClient = new QueryClient()
 
 function NavItem({ to, children, onNavigate }: { to: string; children: React.ReactNode; onNavigate?: () => void }) {
   return (
-    <NavLink
-      to={to}
-      onClick={onNavigate}
-      className={({ isActive }) =>
-        `relative text-sm px-1 py-3 md:py-4 transition-colors ${
-          isActive
-            ? 'text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        }`
-      }
-    >
+    <NavLink to={to} onClick={onNavigate} className={({ isActive }) =>
+      `relative text-sm px-1 py-3 lg:py-4 transition-colors ${isActive
+        ? 'text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-foreground'
+        : 'text-muted-foreground hover:text-foreground'}`
+    }>
       {children}
     </NavLink>
   )
 }
 
 function DarkModeToggle() {
-  const [dark, setDark] = useState(() =>
-    typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
-  )
+  const [dark, setDark] = useState(() => typeof window !== 'undefined' && document.documentElement.classList.contains('dark'))
 
   useEffect(() => {
     const stored = localStorage.getItem('theme')
@@ -63,26 +55,14 @@ function DarkModeToggle() {
 
 function MenuIcon({ open }: { open: boolean }) {
   return open ? (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
   ) : (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 6h16" />
-      <path d="M4 12h16" />
-      <path d="M4 18h16" />
-    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
   )
 }
 
 function Brand() {
-  return (
-    <div className="flex items-center gap-2 shrink-0">
-      <span className="inline-block size-2 rounded-full bg-foreground" />
-      <span className="font-semibold tracking-tight text-sm">MyLLM</span>
-    </div>
-  )
+  return <div className="flex items-center gap-2 shrink-0"><span className="inline-block size-2 rounded-full bg-foreground"/><span className="font-semibold tracking-tight text-sm">MyLLM</span></div>
 }
 
 function App() {
@@ -95,8 +75,7 @@ function App() {
           <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur border-b">
             <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 flex min-w-0 items-center min-h-14">
               <Brand />
-
-              <nav className="hidden md:flex items-center gap-5 lg:gap-6 ml-8 lg:ml-10 min-w-0">
+              <nav className="hidden lg:flex items-center gap-5 xl:gap-6 ml-8 xl:ml-10 min-w-0">
                 <NavItem to="/playground">Playground</NavItem>
                 <NavItem to="/keys">Provider Keys</NavItem>
                 <NavItem to="/api-keys">API Keys</NavItem>
@@ -105,26 +84,17 @@ function App() {
                 <NavItem to="/model-status">Model Status</NavItem>
                 <NavItem to="/batches">Batches</NavItem>
               </nav>
-
               <div className="ml-auto flex items-center gap-1 py-2 shrink-0">
-                <div className="md:hidden">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setMobileMenuOpen((open) => !open)}
-                    aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                    aria-expanded={mobileMenuOpen}
-                    aria-controls="mobile-navigation"
-                  >
+                <div className="lg:hidden">
+                  <Button variant="ghost" size="sm" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation">
                     <MenuIcon open={mobileMenuOpen} />
                   </Button>
                 </div>
                 <DarkModeToggle />
               </div>
             </div>
-
             {mobileMenuOpen && (
-              <nav id="mobile-navigation" className="md:hidden border-t bg-background">
+              <nav id="mobile-navigation" className="lg:hidden border-t bg-background">
                 <div className="max-w-6xl mx-auto px-4 py-2 flex flex-col">
                   <NavItem to="/playground" onNavigate={() => setMobileMenuOpen(false)}>Playground</NavItem>
                   <NavItem to="/keys" onNavigate={() => setMobileMenuOpen(false)}>Provider Keys</NavItem>
@@ -137,7 +107,6 @@ function App() {
               </nav>
             )}
           </header>
-
           <main className="max-w-6xl w-full mx-auto min-w-0 px-4 sm:px-6 py-6 sm:py-8">
             <Routes>
               <Route path="/" element={<Navigate to="/playground" replace />} />
