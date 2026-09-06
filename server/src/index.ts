@@ -7,10 +7,15 @@ import { getWebhookDispatcher } from './services/batchWebhook.js';
 import { startBatchRetention } from './services/batchRetention.js';
 import { startImageRetention } from './services/imageStorage.js';
 import { startRequestsRetention } from './services/requestsRetention.js';
+import { restoreDbBackup, startDbBackup } from './services/dbBackup.js';
 
 const PORT = process.env.PORT ?? 3001;
 
 async function main() {
+  // If remote DB persistence is configured, restore the latest encrypted
+  // snapshot before SQLite opens the database. Existing deployments without
+  // the backup variables keep the exact old startup behaviour.
+  await restoreDbBackup();
   initDb();
   const app = createApp();
 
@@ -23,6 +28,7 @@ async function main() {
     startBatchRetention();
     startImageRetention();
     startRequestsRetention();
+    startDbBackup();
   });
 }
 
