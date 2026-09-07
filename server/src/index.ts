@@ -12,6 +12,15 @@ import { isDbBackupConfigured, restoreDbBackupIfNeeded, startDbBackupPump } from
 
 const PORT = process.env.PORT ?? 3001;
 
+type BackupScheduler = Parameters<typeof startDbBackupPump>[1];
+const backupScheduler: BackupScheduler = {
+  every(ms: number, fn: () => void) {
+    const timer = setInterval(fn, ms);
+    timer.unref?.();
+    return () => clearInterval(timer);
+  },
+} as BackupScheduler;
+
 async function main() {
   // Use the exact FreeLLMAPI backup contract when FREEAPI_DB_BACKUP_TARGET,
   // FREEAPI_DB_BACKUP_URL, or FREEAPI_DB_BACKUP_PATH is configured.
@@ -37,11 +46,7 @@ async function main() {
     startRequestsRetention();
 
     if (isDbBackupConfigured()) {
-      startDbBackupPump(getDb(), { every: (ms: number, fn: () => void) => {
-        const timer = setInterval(fn, ms);
-        timer.unref?.();
-        return () => clearInterval(timer);
-      }} as never);
+      startDbBackupPump(getDb(), backupScheduler);
     } else {
       startDbBackup();
     }
