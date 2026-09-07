@@ -1,6 +1,6 @@
 import './env.js';
 import { createApp } from './app.js';
-import { initDb } from './db/index.js';
+import { initDb, getDb } from './db/index.js';
 import { startHealthChecker } from './services/health.js';
 import { getBatchWorker } from './services/batchWorker.js';
 import { getWebhookDispatcher } from './services/batchWebhook.js';
@@ -8,14 +8,21 @@ import { startBatchRetention } from './services/batchRetention.js';
 import { startImageRetention } from './services/imageStorage.js';
 import { startRequestsRetention } from './services/requestsRetention.js';
 import { restoreDbBackup, startDbBackup } from './services/dbBackup.js';
+import { isDbBackupConfigured, restoreDbBackupIfNeeded, startDbBackupPump } from './lib/db-backup.js';
 
 const PORT = process.env.PORT ?? 3001;
 
 async function main() {
-  // If remote DB persistence is configured, restore the latest encrypted
-  // snapshot before SQLite opens the database. Existing deployments without
-  // the backup variables keep the exact old startup behaviour.
-  await restoreDbBackup();
+  // Use the exact FreeLLMAPI backup contract when FREEAPI_DB_BACKUP_TARGET,
+  // FREEAPI_DB_BACKUP_URL, or FREEAPI_DB_BACKUP_PATH is configured.
+  // Keep the existing Filebase implementation as a fallback so existing
+  // Extended deployments do not need their current Render env vars changed.
+  if (isDbBackupConfigured()) {
+    await restoreDbBackupIfNeeded();
+  } else {
+    await restoreDbBackup();
+  }
+
   initDb();
   const app = createApp();
 
@@ -28,7 +35,16 @@ async function main() {
     startBatchRetention();
     startImageRetention();
     startRequestsRetention();
-    startDbBackup();
+
+    if (isDbBackupConfigured()) {
+      startDbBackupPump(getDb(), { every: (ms: number, fn: () => void) => {
+        const timer = setInterval(fn, ms);
+        timer.unref?.();
+        return () => clearInterval(timer);
+      }} as never);
+    } else {
+      startDbBackup();
+    }
   });
 }
 
