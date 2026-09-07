@@ -4,13 +4,18 @@ import path from 'path';
 import { gzipSync, gunzipSync } from 'zlib';
 import type { Db } from '../db/types.js';
 import type { Scheduler } from './scheduler.js';
-import { getDefaultDbPath } from '../db/index.js';
 import { restrictToOwner } from './file-permissions.js';
 
 const MAGIC = Buffer.from('FAPIBK1\0');
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 30 * 1000;
 const PLACEHOLDER_KEY = 'replace-with-64-char-hex';
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const DEFAULT_DB_PATH = path.resolve(__dirname, '../../data/freeapi.db');
+
+function getDefaultDbPath(): string {
+  return process.env.FREEAPI_DB_PATH?.trim() || DEFAULT_DB_PATH;
+}
 
 export interface DbBackupResult {
   ok: boolean;
@@ -29,9 +34,7 @@ function backupTarget(): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function isDbBackupConfigured(): boolean {
-  return backupTarget() !== null;
-}
+export function isDbBackupConfigured(): boolean { return backupTarget() !== null; }
 
 function backupIntervalMs(): number {
   const raw = process.env.FREEAPI_DB_BACKUP_INTERVAL_MS;
@@ -57,8 +60,7 @@ function encryptBackup(plain: Buffer): Buffer {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const ciphertext = Buffer.concat([cipher.update(plain), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([MAGIC, iv, tag, ciphertext]);
+  return Buffer.concat([MAGIC, iv, cipher.getAuthTag(), ciphertext]);
 }
 
 function decryptBackup(payload: Buffer): Buffer {
@@ -69,12 +71,9 @@ function decryptBackup(payload: Buffer): Buffer {
   const ivStart = MAGIC.length;
   const tagStart = ivStart + 12;
   const bodyStart = tagStart + 16;
-  const iv = payload.subarray(ivStart, tagStart);
-  const tag = payload.subarray(tagStart, bodyStart);
-  const ciphertext = payload.subarray(bodyStart);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, payload.subarray(ivStart, tagStart));
+  decipher.setAuthTag(payload.subarray(tagStart, bodyStart));
+  return Buffer.concat([decipher.update(payload.subarray(bodyStart)), decipher.final()]);
 }
 
 export function parseHuggingFaceTarget(target: string): { commitUrl: string; filePath: string } | null {
@@ -89,10 +88,7 @@ export function parseHuggingFaceTarget(target: string): { commitUrl: string; fil
   const [namespace, repo, , revision] = rest;
   const filePath = rest.slice(4).map(decodeURIComponent).join('/');
   if (!namespace || !repo || !revision || !filePath) return null;
-  return {
-    commitUrl: `https://huggingface.co/api/${type}/${namespace}/${repo}/commit/${revision}`,
-    filePath,
-  };
+  return { commitUrl: `https://huggingface.co/api/${type}/${namespace}/${repo}/commit/${revision}`, filePath };
 }
 
 async function uploadToHuggingFace(commitUrl: string, filePath: string, payload: Buffer, token: string): Promise<void> {
