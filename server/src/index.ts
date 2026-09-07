@@ -32,7 +32,8 @@ async function main() {
     await restoreDbBackup();
   }
 
-  initDb();
+  const dbPath = process.env.FREEAPI_DB_PATH?.trim() || undefined;
+  initDb(dbPath);
   const app = createApp();
 
   app.listen(Number(PORT), '0.0.0.0', () => {
@@ -46,7 +47,7 @@ async function main() {
     startRequestsRetention();
 
     if (isDbBackupConfigured()) {
-      startDbBackupPump(getDb(), backupScheduler);
+      startDbBackupPump(getDb(), backupScheduler, dbPath);
     } else {
       startDbBackup();
     }
