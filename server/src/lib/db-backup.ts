@@ -40,16 +40,10 @@ function parseBackupKey(): Buffer {
 }
 
 function encryptBackup(plain: Buffer): Buffer {
-  const cipher = crypto.createCipheriv('aes-256-gcm', parseBackupKey(), crypto.randomBytes(12));
-  const iv = (cipher as unknown as { getAuthTag(): Buffer });
+  const nonce = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', parseBackupKey(), nonce);
   const ciphertext = Buffer.concat([cipher.update(plain), cipher.final()]);
-  // Re-create using the IV explicitly so the wire format remains FAPIBK1 + IV + tag + ciphertext.
-  return (() => {
-    const nonce = crypto.randomBytes(12);
-    const c = crypto.createCipheriv('aes-256-gcm', parseBackupKey(), nonce);
-    const body = Buffer.concat([c.update(plain), c.final()]);
-    return Buffer.concat([MAGIC, nonce, c.getAuthTag(), body]);
-  })();
+  return Buffer.concat([MAGIC, nonce, cipher.getAuthTag(), ciphertext]);
 }
 
 function decryptBackup(payload: Buffer): Buffer {
